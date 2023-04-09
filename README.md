@@ -7,7 +7,7 @@ Clone the repository :\
 `git clone https://github.com/yoterel/nepmap.git`
 
 Create a conda environment :\
-`conda create -n nepmap --file requirements.yml`
+`conda env create -n nepmap --file environment.yml`
 
 Activate the environment :\
 `conda activate nepmap`
