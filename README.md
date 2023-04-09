@@ -1,1 +1,31 @@
-# nepmap
+# Neural Projection Mapping Using Reflectance Fields
+
+This is the official implmentation of "Neural Projection Mapping Using Reflectance Fields".
+To install, first clone the repository and install the dependencies:
+
+Clone the repository :\
+`git clone https://github.com/yoterel/nepmap.git`
+
+Create a conda environment :\
+`conda create -n nepmap python=3.9 --file requirements.yml`
+
+Activate the environment :\
+`conda activate nepmap`
+
+Install nerfacc from the ext folder (note: custom changes have been made to occ grid class so this version must be used):\
+`cd ext/nerfacc`\
+`pip install .`
+
+Train on the provided example data (note: for some scenes a vanilla nerf must be trained first):\
+`cd ../..`\
+`python train.py --config configs/castle_nerf.txt`
+`python train.py --config configs/castle.txt`
+
+Run inference on the provided example data :\
+`python train.py --config configs/castle_inference.txt`
+
+Train on your own data :\
+You must supply a dataset folder in similar structure to the example data.\
+
+
+
