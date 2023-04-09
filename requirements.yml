@@ -1,0 +1,16 @@
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+  - anaconda
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - tqdm
+  - configargparse
+  - pytorch
+  - scipy
+  - matplotlib
+  - pip:
+    - gsoup
