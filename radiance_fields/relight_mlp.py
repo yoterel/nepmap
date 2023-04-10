@@ -343,7 +343,7 @@ class ProjectorRadianceField(nn.Module):
 
     def forward(self, x, views, texture_ids=None, light_field=None, calc_norms=True, cur_step=None):
         # predict shape properties
-        if calc_norms:
+        if calc_norms and not x.requires_grad:
             x.requires_grad = True
         pos_x = self.posi_encoder(x, cur_step)
         predicted_normals, sigma = self.mlp(pos_x, None)
@@ -366,7 +366,7 @@ class ProjectorRadianceField(nn.Module):
                     grad_outputs=d_output,
                     create_graph=False,
                     retain_graph=True)[0]
-            x.requires_grad = False
+            # x.requires_grad = False
             # normals = normals.detach()
             normals = -1 * normals
             normals = torch.nn.functional.normalize(normals, dim=-1, eps=1e-5)

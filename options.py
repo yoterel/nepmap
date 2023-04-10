@@ -3,14 +3,10 @@ from pathlib import Path
 
 def config_parser(cmd=None):
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True,
-                        help='config file path')
-    parser.add_argument("--basedir", type=str, default='./logs/',
-                        help='root dir to store all ckpts, logs, etc.')
-    parser.add_argument("--expname", type=str,
-                        help='experiment name')
-    parser.add_argument("--datadir", type=str, default='./datasets',
-                        help='input data directory')
+    parser.add_argument('--config', is_config_file=True, help='config file path')
+    parser.add_argument("--basedir", type=str, default='./logs/', help='root dir to store all ckpts, logs, etc.')
+    parser.add_argument("--expname", type=str, help='experiment name')
+    parser.add_argument("--datadir", type=str, default='./datasets', help='input data directory')
     parser.add_argument("--scene", type=str, default="bunny", help="which scene to use")
     parser.add_argument("--test_scene", type=str, help="which test scene to use")
     parser.add_argument("--seed", type=int, default=27, help='random seed')
@@ -22,12 +18,11 @@ def config_parser(cmd=None):
     parser.add_argument("--freeze_coloc", action="store_true", help='freeze coloc light')
     parser.add_argument("--freeze_projector", action="store_true", help='freeze projectors')
     parser.add_argument("--projector_add_noise", action="store_true", help='add noise to projector')
-    parser.add_argument("--projector_force_value", action="store_true", help='add noise to projector')
+    parser.add_argument("--projector_force_value", action="store_true", help='force projector to have certain params')
     parser.add_argument("--cameras_add_noise", action="store_true", help='add noise to camera locs')
     parser.add_argument("--rotation_is_qvec", action="store_true", help='rotations are rep. by quaternions')
     parser.add_argument("--datatype", type=str, default='random', choices=["random", "movie"])
-    parser.add_argument("--resource_dir", type=str, default='./resource',
-                        help='resource data directory')
+    parser.add_argument("--resource_dir", type=str, default='./resource', help='resource data directory')
     parser.add_argument("--device", type=str, default='cuda:0')
     parser.add_argument("--aabb", type=lambda s: [float(item) for item in s.split(",")],
         default="-1.5,-1.5,-1.5,1.5,1.5,1.5",

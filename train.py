@@ -137,29 +137,20 @@ if __name__ == "__main__":
             projector = create_projector(train_dataset.K_proj, train_dataset.v_proj, train_dataset.t_proj,
                                          args.proj_w, args.proj_h, train_dataset.textures, amp=args.proj_amp, device=args.device)
             projectors = [projector]
-        path = Path(args.experiment_folder, 'bundle_orig.tar')  # save the original camera poses & projector
-        Rt, K_proj = get_projector_stats(projectors[0])
-        np.savez(str(path),
-                cam_rt=np.stack(gsoup.to_np(train_dataset.orig_camtoworlds)[None, ...]),
-                proj_rt=Rt[None, ...], proj_k=K_proj[None, ...])
+        if initial_step == 0:
+            path = Path(args.experiment_folder, 'bundle_orig.tar')  # save the original camera poses & projector
+            Rt, K_proj = get_projector_stats(projectors[0])
+            np.savez(str(path),
+                    cam_rt=np.stack(gsoup.to_np(train_dataset.orig_camtoworlds)[None, ...]),
+                    proj_rt=Rt[None, ...], proj_k=K_proj[None, ...])
     if args.projectors:
         for projector in projectors:
-            # if not train_dataset.is_blender:
-                # projector["t"] = torch.tensor([0.7606, -1.3711,  0.4506], device=args.device)
-                # projector["f"] = torch.tensor([2800. / projector["W"]], device=args.device)
-                # projector["cx"] = torch.tensor([960. / projector["W"]], device=args.device)
-                # projector["cy"] = torch.tensor([1010. / projector["W"]], device=args.device)
-            if args.projector_add_noise:
+            if args.projector_add_noise and not args.render_only:
                 if train_dataset.is_blender:
-                    # projector["t"] = torch.tensor([-0.5, -0.5, 0.5], device=args.device)  # left corner
-                    projector["t"] = (projector["t"] + torch.randn_like(projector["t"])*0.3).detach().clone()
-                    projector["v"] = (projector["v"] + torch.randn_like(projector["v"])*0.3).detach().clone()
+                    projector["t"] = (projector["t"] + torch.randn_like(projector["t"])*0.1).detach().clone()
+                    projector["v"] = (projector["v"] + torch.randn_like(projector["v"])*0.1).detach().clone()
                 else:
-                    projector["t"] = torch.tensor([0.5, -0.5, 0.5], device=args.device)  # place in right corner
-                    projector["t"] = (projector["t"] + torch.randn_like(projector["t"])*0.05).detach().clone()  # add noise
-                    # projector["t"] = torch.tensor([0.0, -0.5, 0.0], device=args.device)  # center zx
-                    # projector["t"] = torch.tensor([0.5, -0.5, 0.0], device=args.device)  # right zx
-                    # projector["t"] = torch.tensor([0.5, -0.5, 0.5], device=args.device)  # bottom right corner
+                    projector["t"] = torch.tensor([0.5, -0.5, 0.5], device=args.device)  # place arbitrary in unit cube corner
                     rot = gsoup.look_at_torch(projector["t"],
                                             torch.zeros(3, device=args.device),
                                             torch.tensor([0.0, 0.0, 1.0], device=args.device))
@@ -167,10 +158,11 @@ if __name__ == "__main__":
                     # projector["t"] = (projector["t"] + torch.randn_like(projector["t"])*0.05).detach().clone()
                     # projector["v"] = (projector["v"] + torch.randn_like(projector["v"])*0.05).detach().clone()
             if args.projector_force_value:
+                pass
                 # projector["amp"] = torch.full((1, ), 15.0, dtype=torch.float32, device=args.device)
-                # projector["gamma"] = torch.full((1, ), 1.2, dtype=torch.float32, device=args.device)
+                # projector["gamma"] = torch.full((1, ), 2.2, dtype=torch.float32, device=args.device)
                 # projector["f"] = torch.full_like(projector["f"], 1.9, device=args.device)
-                projector["cy"] = torch.full_like(projector["cy"], 0.7, device=args.device)
+                # projector["cy"] = torch.full_like(projector["cy"], 0.7, device=args.device)
             projector["t"].requires_grad = True
             projector["v"].requires_grad = True
             projector["gamma"].requires_grad = True
@@ -219,14 +211,14 @@ if __name__ == "__main__":
             t_cams = torch.tensor(t_cams, dtype=torch.float32, device=device)
             v_cams = torch.tensor(v_cams, dtype=torch.float32, device=device)
             cameras = [t_cams, v_cams]
-        if args.cameras_add_noise:
-            cameras[0] = (cameras[0] + torch.randn_like(cameras[0])*0.03).detach().clone()
+        if args.cameras_add_noise and not args.render_only:
+            cameras[0] = (cameras[0] + torch.randn_like(cameras[0])*0.02).detach().clone()
         cameras[0].requires_grad = True
         cameras[1].requires_grad = True
         opt_group["cams"] = len(opt_group.keys())
         optimizer.add_param_group({'params': cameras, 'lr': args.lr, 'name': 'cameras'})
         train_dataset.cameras = cameras
-    if args.projectors:
+    if args.projectors and initial_step == 0:
         path = Path(args.experiment_folder, 'bundle_init.tar')
         Rt, K_proj = get_projector_stats(projectors[0])
         np.savez(str(path),
@@ -265,7 +257,7 @@ if __name__ == "__main__":
     if args.nerf_checkpoint:
         occupancy_grid.load_state_dict(nerf_ckpt["occupancy_grid"])
     if args.render_only:
-        modes = ["multi_t2t"] # "test_set", "train_set", "t2t", "compensate" , "dual_photo"
+        modes = ["play_vid", "test_set", "move_camera", "move_projector", "train_set_movie", ""] # "test_set", "train_set", "t2t", "compensate" , "dual_photo"
         for param in radiance_field.parameters():
             param.requires_grad = False
         for mode in modes:
@@ -292,13 +284,6 @@ if __name__ == "__main__":
                 extra_info = {"coloc_light": False, "proj_texture": "all_white", "cam_index": [28, 37],
                                 "prompt": ["Side profile of Abraham Lincoln",
                                            "Stone sculpture of Abraham Lincoln"],
-                                # "prompt": ["A bunny with a Tron like neon glow",
-                                #            "A steampunk bunny with metal and brass",
-                                #            "A furry rabbit Looking like Lola Bunny",
-                                #            "A bunny with ribbons and hearts all over its body"],
-                                # "A photo realistic brushed metal bunny",
-                                #            "A bunny looking like a white tiger",
-                                #            "A realistic bunny with a leopard pattern on its fur",
                                 "t_in": [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
                                 "t_out": None,
                                 "brightness": -50,
@@ -332,7 +317,6 @@ if __name__ == "__main__":
                     mask = np.array(frames_to_render) >= len(train_dataset)
                     frames_to_render[mask] = 0
                 else:
-                    # frames_to_render = np.array([74,161,254,11,266,152,242,218,53,29,296,293,239,260,113,89,26,80,14,281,17,206,86,143,23,167,35,62,224,83])
                     frames_to_render = np.array([110,74,179,167,50,92,278,272,251,5,221,71,107,17,257,56,182,44,287,269,29,188,77,212,62,83,227,233,14,32,176,68,170,101,173,206])
                     # projector_on_frames = np.arange(2, len(test_dataset), 3)
                     # frames_to_render = np.random.choice(projector_on_frames,
@@ -392,8 +376,8 @@ if __name__ == "__main__":
                                 test_dataset, train_dataset, args, prefix="ro_dp", mode="dual_photo", extra_info=extra_info)
             elif mode == "play_vid":
                 if args.projectors:
-                    extra_info = {"cam_index": 3,
-                                "proj_index": 100, "n_frames": 20, "stride": 20, "vid_path": "./resource/christmas.mp4"}
+                    extra_info = {"cam_index": 20,
+                                  "proj_index": 20, "stride": 10, "vid_path": "./resource/test.mp4"}
                     play_vid_retvals = ["rgb"]
                     render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                                 render_step_size / 2, play_vid_retvals, light_field,
@@ -456,14 +440,7 @@ if __name__ == "__main__":
                     if "cams" in opt_group:
                         for param in optimizer.param_groups[opt_group["cams"]]["params"]:
                             param.requires_grad = False
-                    # if not train_dataset.is_blender and phase == 1:
-                    #     train_dataset.all_foreground = True
-                    # if phase == 0 and not train_dataset.is_blender:
-                    #     train_dataset.all_foreground = True
-                    # else:
-                    #     train_dataset.all_foreground = False
                 elif phase == 2:  # optimize optical elements
-                    # train_retvals = train_retvals[:-1]
                     for param in optimizer.param_groups[opt_group["net"]]["params"]:
                         param.requires_grad = False
                     for param in optimizer.param_groups[opt_group["vis"]]["params"]:
@@ -476,17 +453,15 @@ if __name__ == "__main__":
                         param.requires_grad = False
                     if "cams" in opt_group:
                         for param in optimizer.param_groups[opt_group["cams"]]["params"]:
-                            param.requires_grad = False
+                            param.requires_grad = True
+                        optimizer.param_groups[opt_group["cams"]]['lr'] = args.lr / 4
                     train_dataset.use_random_cams = False
                     train_dataset.only_static_views = False
                     train_dataset.only_black_views = False
                     if train_dataset.is_blender:
-                        optimizer.param_groups[opt_group["proj_geo"]]['lr'] = args.lr / 4 # set lr for projector
+                        optimizer.param_groups[opt_group["proj_geo"]]['lr'] = args.lr
                     else:
                         optimizer.param_groups[opt_group["proj_geo"]]['lr'] = args.lr
-                    # optimizer.param_groups[3]['lr'] = 1e-4 # set lr for coloc
-                    # if len(optimizer.param_groups) > 4:  # cameras
-                        # optimizer.param_groups[4]['lr'] = 5e-5 # set lr for cameras
                 elif phase == 3:  # finetune all
                     train_dataset.use_random_cams = False
                     train_dataset.only_static_views = False
@@ -726,7 +701,7 @@ if __name__ == "__main__":
                 # occ_path = Path(args.experiment_folder, 'occ_grid_{:06d}.tar'.format(step))
                 # np.savez(str(occ_path), cords=occupancy_grid.grid_coords.cpu().numpy(), vals=occupancy_grid.occs.cpu().numpy())
             
-            # run inference on some views
+            # run inference on some training views
             if step != initial_step and step % args.test_step == 0:
                 if args.frames_for_render is not None:
                     frames_to_render = np.array([int(x) for x in args.frames_for_render.split()])
@@ -740,29 +715,6 @@ if __name__ == "__main__":
                                         test_dataset, train_dataset, args, prefix="{:05d}".format(step), mode="train_set", extra_info=extra_info)
                 psnr_avg = sum(psnrs) / len(psnrs)
                 logging.info(f"evaluation: psnr_avg={psnr_avg}")
-            # run inference on many views
-            if step != initial_step and step % args.video_step == 0:
-                extra_info = {"coloc_light": not args.projectors,
-                            "proj_texture": "all_white",
-                            "proj_amp": 3.4,
-                            "cam_index": 3,
-                            "n_frames": 15}
-                render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                                render_step_size / 2, test_retvals, light_field,
-                                test_dataset, train_dataset, args, prefix="move_cam", mode="move_camera", extra_info=extra_info)
-                if args.projectors:
-                    proj_retvals = ["rgb", "pred_proj_transm_map"]
-                    render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                                    render_step_size / 2, proj_retvals, light_field,
-                                    test_dataset, train_dataset, args, prefix="move_proj", mode="move_projector", extra_info=extra_info)
-                extra_info = {"stride": 20}
-                render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                            render_step_size / 2, test_retvals, light_field,
-                            test_dataset, train_dataset, args, mode="test_set_movie", extra_info=extra_info)
-                if args.opt_cams:
-                    render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                            render_step_size / 2, test_retvals, light_field,
-                            test_dataset, train_dataset, args, mode="train_set_movie", extra_info=extra_info)
             if step >= args.max_step:
                 logging.info("training stops")
                 exit()

@@ -23,7 +23,7 @@ Train on the provided example data (note: for some scenes a vanilla nerf must be
 `python train.py --config configs/castle.txt`
 
 Run inference on the provided example data :\
-`python train.py --config configs/castle_inference.txt`
+`python train.py --config configs/castle.txt --render_only`
 
 Train on your own data :\
 You must supply a dataset folder in similar structure to the example data.

@@ -465,6 +465,17 @@ def dual_photography(desired_appearance, retvals, projector, camera,
     """
     returns the projector image that best obtain desired appearance from camera viewpoint
     :param desired_apperance float tensor channels first, [C, H, W]
+    :param retvals: return values from the render function
+    :param projector: projector dictionary
+    :param camera: camera dictionary
+    :param radiance_field: radiance field
+    :param occupancy_grid: occupancy grid
+    :param light_field: light field
+    :param scene_aabb: scene aabb
+    :param render_step_size: render step size
+    :param test_chunk_size: test chunk size
+    :param dst: destination path to save result to
+    :param bg_color: background color to render with
     """
     device = desired_appearance.device
     with torch.no_grad():
@@ -1071,13 +1082,18 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 print("amp values: ", amp_values)
                 print("psnrs amp: ", psnrs[num_images:])
         elif mode == "dual_photo":
+            """
+            renders a dual photo as described in paper
+            """
+            # obtain some desired view (beyond an occluder for example)
+            # note: change this to your desired view, currently it is set up to produce paper result
             orig_c2w = train_dataset.camtoworlds[extra_info["cam_index"]].clone().detach()
             view = orig_c2w.clone().detach()
             x_dir = view[:3, 0].clone()
             y_dir = view[:3, 1].clone()
             z_dir = view[:3, 2].clone()
-            at = view[:3, -1].clone() + 0.95 * z_dir
-            view[:3, -1] += 0.2*y_dir
+            at = view[:3, -1].clone() + 0.95 * z_dir  # advance camera in view direction
+            view[:3, -1] += 0.2*y_dir  # and down a bit
             z_dir_new = at - view[:3, -1]
             z_dir_new = z_dir_new / torch.norm(z_dir_new)
             x_dir_new = x_dir
@@ -1089,9 +1105,9 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
             # rot = gsoup.look_at_torch(view[:3, -1],
             #                         at,
             #                         torch.tensor([0.0, 0.0, 1.0], device=args.device))
-            train_dataset.camtoworlds[extra_info["cam_index"]] = view
-            primary_rays = train_dataset[extra_info["cam_index"]]["rays"]
-            primal_result = march_and_extract(
+            train_dataset.camtoworlds[extra_info["cam_index"]] = view  # set new viewpoint
+            primary_rays = train_dataset[extra_info["cam_index"]]["rays"]  # get rays
+            primal_result = march_and_extract(  # march but use a near plane further away than 0 to render beyond an occluder
                     radiance_field,
                     primary_rays,
                     scene_aabb,
@@ -1356,9 +1372,12 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 light_field["projectors"][0]["v"] = cur_v
         elif mode == "play_vid":
             with torch.no_grad():
-                from rendering.image import read_video_cv2
-                vid_path = Path(extra_info["vid_path"])
-                frames = read_video_cv2(vid_path, int(light_field["projectors"][0]["H"].item()), int(light_field["projectors"][0]["W"].item()))
+                from gsoup.video import VideoReader
+                reader = VideoReader(Path(extra_info["vid_path"]),
+                                    int(light_field["projectors"][0]["H"].item()),
+                                    int(light_field["projectors"][0]["W"].item()),
+                                    verbose=True)
+                frames = gsoup.to_torch(np.array([frame for frame in reader]), device=args.device) / 255
                 if "stride" in extra_info:
                     stride=extra_info["stride"]
                 else:
@@ -1367,18 +1386,21 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 cur_t = light_field["projectors"][0]["t"]
                 cur_v = light_field["projectors"][0]["v"]
                 results = defaultdict(list)
-                for i in tqdm.tqdm(range(len(frames))):  # len(test_dataset)
-                    data = test_dataset[extra_info["cam_index"]]
+                for i in tqdm.tqdm(range(len(frames))):
+                    c2w = train_dataset.get_current_cameras(select=torch.tensor([20], device=args.device))[0]
+                    data = train_dataset[extra_info["cam_index"]]
                     render_bkgd = data["color_bkgd"]
                     rays = data["rays"]
                     texture_ids = None
-                    light_field["projectors"][0]["textures"] = frames[i].to(args.device)
-                    R_mat = test_dataset.camtoworlds[extra_info["proj_index"], :3, :3]
+                    light_field["projectors"][0]["textures"] = frames[i].permute(2, 0, 1)
+                    R_mat = c2w[:3, :3]
+                    # R_mat = train_dataset.camtoworlds[extra_info["proj_index"], :3, :3]
                     rot = R.from_matrix(R_mat.cpu().numpy())
                     forward_vector = R_mat @ torch.tensor([0., 0., 1.], device=args.device)
-                    rot_vec = rot.as_rotvec()
-                    light_field["projectors"][0]["t"] = test_dataset.camtoworlds[extra_info["proj_index"], :3, -1] + forward_vector * 0.75
-                    light_field["projectors"][0]["v"] = torch.tensor(rot_vec, dtype=torch.float32, device=args.device)
+                    qvec = rot.as_quat().astype(np.float32)
+                    qvec = np.array([qvec[3], qvec[0], qvec[1], qvec[2]])  # flip real to be first
+                    light_field["projectors"][0]["t"] = c2w[:3, -1] + forward_vector * 0.75
+                    light_field["projectors"][0]["v"] = torch.tensor(qvec, dtype=torch.float32, device=args.device)
                     result = march_and_extract(
                         radiance_field,
                         rays,
