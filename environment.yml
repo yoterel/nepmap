@@ -1,7 +1,7 @@
 channels:
-  - conda-forge
   - pytorch
   - nvidia
+  - conda-forge
   - anaconda
   - defaults
 dependencies:

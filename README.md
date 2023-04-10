@@ -28,5 +28,7 @@ Run inference on the provided example data :\
 Train on your own data :\
 You must supply a dataset folder in similar structure to the example data.
 
+Note about background removal:\
+The raw acquired images must have RGBA information. If it doesn't, consider segmenting the background using [rembg](https://github.com/danielgatis/rembg) 
 
 
