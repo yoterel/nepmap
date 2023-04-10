@@ -29,6 +29,10 @@ Train on your own data :\
 You must supply a dataset folder in similar structure to the example data.
 
 Note about background removal:\
-The raw acquired images must have RGBA information. If it doesn't, consider segmenting the background using [rembg](https://github.com/danielgatis/rembg) 
+The raw acquired images must have RGBA information (alpha channel seperating background from foreground). If it doesn't, consider segmenting the background using [rembg](https://github.com/danielgatis/rembg) or other tools.
+
+## Contributions / Requests
+
+Feel free to ask for any additional information or to contribute to the project.
 
 
