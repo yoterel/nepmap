@@ -483,9 +483,9 @@ class SubjectLoader(torch.utils.data.Dataset):
                 full_matrices = np.stack(full_matrices, axis=0)
                 self.camtoworlds[indices[i, 0]+1:indices[i, 1]] = full_matrices
         if force_opt_all:
-            mask =  np.ones((len(self.camtoworlds),), dtype=np.bool)
+            mask =  np.ones((len(self.camtoworlds),), dtype=bool)
         if force_opt_none:
-            mask = np.zeros((len(self.camtoworlds),), dtype=np.bool)
+            mask = np.zeros((len(self.camtoworlds),), dtype=bool)
         return mask
 
 
