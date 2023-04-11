@@ -257,7 +257,10 @@ if __name__ == "__main__":
     if args.nerf_checkpoint:
         occupancy_grid.load_state_dict(nerf_ckpt["occupancy_grid"])
     if args.render_only:
-        modes = ["play_vid", "test_set", "move_camera", "move_projector", "train_set_movie", ""] # "test_set", "train_set", "t2t", "compensate" , "dual_photo"
+        if args.render_modes is None:
+            modes = ["train_set"] # "test_set", "train_set", "t2t", "compensate" , "dual_photo"
+        else:
+            modes = args.render_modes.strip().split(",")
         for param in radiance_field.parameters():
             param.requires_grad = False
         for mode in modes:
@@ -376,11 +379,10 @@ if __name__ == "__main__":
                                 test_dataset, train_dataset, args, prefix="ro_dp", mode="dual_photo", extra_info=extra_info)
             elif mode == "play_vid":
                 if args.projectors:
-                    extra_info = {"cam_index": 20,
-                                  "proj_index": 20, "stride": 10, "vid_path": "./resource/test.mp4"}
+                    extra_info = {"cam_index": 20, "proj_index": 20, "stride": 4, "vid_path": "./resource/test.mp4", "animate_cam": "xz"}
                     play_vid_retvals = ["rgb"]
                     render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                                render_step_size / 2, play_vid_retvals, light_field,
+                                render_step_size / 4, play_vid_retvals, light_field,
                                 test_dataset, train_dataset, args, prefix="ro_project_vid", mode="play_vid", extra_info=extra_info)
         exit(0)
     # training

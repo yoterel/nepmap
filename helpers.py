@@ -369,18 +369,24 @@ def march_and_extract(
     all_ret = {k: torch.cat(all_ret[k], 0) for k in all_ret}
     return all_ret
 
-def vcams_from_cams(cams, n=30, plane="xz"):
+def vcams_from_cams(cams, n=30, plane="xz", center_pose=None, radius_factor=1.0):
     """
     creates a set of virtual cameras that are evenly distributed on a circle around the scene
-    :param cams the original camera poses
+    :param cams the original camera poses (used for determining radius of circle)
     :param n the number of virtual cameras
     :param plane the plane on which the virtual cameras are distributed in a circle
+    :param center_pose the pose of the center of the circle
+    :param radius_factor a factor that is multiplied with the radius of the circle
     """
     cams_np = cams.cpu().numpy()
     radius = np.mean(np.linalg.norm(cams_np[:, :3, 3], axis=-1))  # mean distance to origin used as radius
+    radius *= radius_factor
     mean_loc = np.mean(cams_np[:, :3, 3], axis=0) #+ np.array([-0.3, 0.0, 0.0])
     t = np.linspace(0, 2*np.pi, n, endpoint=False)
-    origin = mean_loc
+    if center_pose is not None:
+        origin = center_pose[:3, -1]
+    else:
+        origin = mean_loc
     if plane == "xz" or plane == "zx":
         x = radius * np.cos(t) + origin[0]
         y = np.broadcast_to(origin[1], t.shape)
@@ -1371,35 +1377,48 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 light_field["projectors"][0]["t"] = cur_t
                 light_field["projectors"][0]["v"] = cur_v
         elif mode == "play_vid":
+            from gsoup.video import VideoReader
+            reader = VideoReader(Path(extra_info["vid_path"]),
+                                int(light_field["projectors"][0]["H"].item()),
+                                int(light_field["projectors"][0]["W"].item()),
+                                verbose=True)
+            frames = gsoup.to_torch(np.array([frame for frame in reader]), device=args.device) / 255
+            if "stride" in extra_info:
+                stride=extra_info["stride"]
+            else:
+                stride=1
+            frames = frames[::stride]
             with torch.no_grad():
-                from gsoup.video import VideoReader
-                reader = VideoReader(Path(extra_info["vid_path"]),
-                                    int(light_field["projectors"][0]["H"].item()),
-                                    int(light_field["projectors"][0]["W"].item()),
-                                    verbose=True)
-                frames = gsoup.to_torch(np.array([frame for frame in reader]), device=args.device) / 255
-                if "stride" in extra_info:
-                    stride=extra_info["stride"]
-                else:
-                    stride=10
-                frames = frames[::stride]
                 cur_t = light_field["projectors"][0]["t"]
                 cur_v = light_field["projectors"][0]["v"]
+                cur_c2w = test_dataset.camtoworlds
+                proj_c2w = train_dataset.get_current_cameras(select=torch.tensor([extra_info["proj_index"]], device=args.device))[0]
                 results = defaultdict(list)
+                if "animate_cam" in extra_info:
+                    plane = extra_info["animate_cam"]
+                    vc2w = vcams_from_cams(train_dataset.camtoworlds,
+                                           len(frames) // 2,
+                                           plane=plane,
+                                           center_pose=proj_c2w.cpu().numpy(),
+                                           radius_factor=0.25)
+                    test_dataset.camtoworlds = vc2w
+                else:
+                    cam_c2w = train_dataset.get_current_cameras(select=torch.tensor([extra_info["cam_index"]], device=args.device))
+                    test_dataset.camtoworlds = cam_c2w.repeat(len(frames), 1, 1)
                 for i in tqdm.tqdm(range(len(frames))):
-                    c2w = train_dataset.get_current_cameras(select=torch.tensor([20], device=args.device))[0]
-                    data = train_dataset[extra_info["cam_index"]]
+                    data = test_dataset[i % (len(frames) // 2)]
                     render_bkgd = data["color_bkgd"]
+                    # render_bkgd = torch.tensor([0.0, 0.0, 0.0], device=args.device)
                     rays = data["rays"]
                     texture_ids = None
                     light_field["projectors"][0]["textures"] = frames[i].permute(2, 0, 1)
-                    R_mat = c2w[:3, :3]
+                    R_mat = proj_c2w[:3, :3]
                     # R_mat = train_dataset.camtoworlds[extra_info["proj_index"], :3, :3]
                     rot = R.from_matrix(R_mat.cpu().numpy())
                     forward_vector = R_mat @ torch.tensor([0., 0., 1.], device=args.device)
                     qvec = rot.as_quat().astype(np.float32)
                     qvec = np.array([qvec[3], qvec[0], qvec[1], qvec[2]])  # flip real to be first
-                    light_field["projectors"][0]["t"] = c2w[:3, -1] + forward_vector * 0.75
+                    light_field["projectors"][0]["t"] = proj_c2w[:3, -1] + forward_vector * 0.75
                     light_field["projectors"][0]["v"] = torch.tensor(qvec, dtype=torch.float32, device=args.device)
                     result = march_and_extract(
                         radiance_field,
@@ -1425,6 +1444,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 save_results_to_gif(results, len(frames), prefix, args.experiment_folder, rays.viewdirs.shape[:2])
                 light_field["projectors"][0]["t"] = cur_t
                 light_field["projectors"][0]["v"] = cur_v
+                test_dataset.camtoworlds = cur_c2w
         else:
             raise NotImplementedError
         if light_field is not None:

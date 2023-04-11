@@ -301,11 +301,8 @@ def pack_textures(textures, proj_width, proj_height):
             bpy_image.pixels.foreach_set(padded_texture.ravel())
             bpy_image.pack()
         
-def swap_projector_texture(texture_name, secondary_projector=False):
-    if secondary_projector:
-        projector_name = "Projector2"
-    else:
-        projector_name = "Projector"
+def swap_projector_texture(texture_name):
+    projector_name = "Projector"
     bpy.data.images[texture_name].colorspace_settings.name = 'Linear'
     bpy.data.lights[projector_name].node_tree.nodes["Image Texture"].image = bpy.data.images[texture_name]
 
@@ -331,25 +328,17 @@ proj1_intrinsics[0, :] /= RESOLUTION
 proj1_intrinsics[0, :] *= PROJ_RES_W
 proj1_intrinsics[1, :] /= RESOLUTION
 proj1_intrinsics[1, :] *= PROJ_RES_H
-proj2_intrinsics = get_camera_parameters_intrinsic(bpy.context.scene, bpy.context.scene.objects["Projector2_Camera"])
-proj2_intrinsics[0, :] /= RESOLUTION
-proj2_intrinsics[0, :] *= PROJ_RES_W
-proj2_intrinsics[1, :] /= RESOLUTION
-proj2_intrinsics[1, :] *= PROJ_RES_H
 out_data = {
     'camera_angle_x': bpy.data.objects['Camera'].data.angle_x,
     'K_cam': listify_matrix(get_camera_parameters_intrinsic(bpy.context.scene, bpy.context.scene.camera)),
     'K_proj': listify_matrix(proj1_intrinsics),
-    'K_proj2': listify_matrix(proj2_intrinsics),
-    'blender_matrix_world_proj': listify_matrix(bpy.context.scene.objects["Projector"].matrix_world),
-    'blender_matrix_world_proj2': listify_matrix(bpy.context.scene.objects["Projector2"].matrix_world)
+    'blender_matrix_world_proj': listify_matrix(bpy.context.scene.objects["Projector"].matrix_world)
 }
 # get textures
 remove_texures()
 texture_names = np.array(TEXTURES)
 
 bpy.context.scene.objects['Projector'].data.energy = 50
-bpy.context.scene.objects['Projector2'].data.energy = 50
 bpy.context.scene.objects["Camera_Light"].data.energy = 10
 bpy.context.scene.render.use_persistent_data = True
 if SINGLE_BOUNCE:

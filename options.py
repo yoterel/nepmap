@@ -34,6 +34,7 @@ def config_parser(cmd=None):
     parser.add_argument("--test_res_wh", type=str, help='test resolution')
     parser.add_argument("--lr", type=float, default=5e-4)
     parser.add_argument("--render_only", default=False, action="store_true")
+    parser.add_argument("--render_modes", type=str, help="render only modes passed as a comma delimited string")
     parser.add_argument("--test_chunk_size", type=int, default=8192)  # 8192
     parser.add_argument("--target_sample_batch_size", type=int, default=2**16)
     parser.add_argument("--unbounded", action="store_true", help="whether to use unbounded rendering")
