@@ -45,7 +45,7 @@ This may be fully automated if T_in is fixed.
 ## Train on your own data
 
 You must supply a dataset folder in similar structure to the example data (for synthetic scenes, see Castle for example).
-For real scenes, this code assumes COLMAP is installed and availble in the current context, and expects the following folder structure:
+For real scenes, this code assumes COLMAP is installed and available in the current context, and expects the following folder structure:
 
     dataset_folder\
         0000.png
