@@ -39,8 +39,9 @@ Text->Projection on Planck scene:\
 `python train.py --config configs/planck.txt --render_only --render_modes multi_t2t --cdc_conda /path/to/cdc/conda/env --cdc_src /path/to/cdc/src`
 
 Note1: for this to work you must have [CDC](https://github.com/cross-domain-compositing/cross-domain-compositing) installed in a seperate folder (where /path/to/cdc/conda/env can be the current one if you installed cdc in the same environment as nepmap).
+
 Note2: The current code produces multiple results for different content aware thresholds ("T_in"). The outputs will be produced in the folder diffuse_i/output where i is the current view being processed. You will be prompted to select an output image, name it "diffuse_final.png" and place it in a diffuse_i folder.
-This may be fully automated if T_in is fixed.
+This may be fully automated if T_in is a single value.
 
 ## Train on your own data
 
