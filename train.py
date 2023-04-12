@@ -264,24 +264,25 @@ if __name__ == "__main__":
         for param in radiance_field.parameters():
             param.requires_grad = False
         for mode in modes:
-            if mode == "multi_t2t":
-                texture = torch.ones((3, 800, 800), dtype=torch.float32, device=args.device)
-                texture[1, :, :] = 0
-                texture[2, :, :] = 0
-                extra_info = {"coloc_light": False, "proj_texture": texture,  # "all_white"
-                              "cam_index": [115, 61, 97],#batman:[28, 286]
-                                "prompt": ["A beutiful red pear.",
-                                           "A beutiful red pear.",
-                                           "A beutiful red pear."],
+            if mode == "multi_t2t":  # optimize multiple view points at the same time
+                # texture = torch.ones((3, 800, 800), dtype=torch.float32, device=args.device)
+                # texture[1, :, :] = 0
+                # texture[2, :, :] = 0
+                extra_info = {"coloc_light": False, "proj_texture": "all_white",  # 
+                              "cam_index": [28, 286],
+                                "prompt": ["Side profile of The Batman",
+                                           "Side profile of The Joker"],
                                 "t_in": [0.0, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
                                 "t_out": None,
                                 "brightness": -50,
+                                "cdc_conda": args.cdc_conda,
+                                "cdc_src": args.cdc_src,
                                 }
                 proj_retvals = ["rgb", "pred_proj_transm_map", "opacity", "pred_normals"]
                 render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                             render_step_size / 4, proj_retvals, light_field,
                             test_dataset, train_dataset, args, prefix="ro_mt2t", mode="multi_t2t", extra_info=extra_info)
-            if mode == "t2t":
+            if mode == "t2t":  # optimize single view point, or multiple view points consecutiely
                 # color = torch.tensor([79, 40, 15], dtype=torch.float32, device=args.device) / 255
                 # color = color[:, None, None].repeat(1, int(light_field["projectors"][0]["H"]), int(light_field["projectors"][0]["W"]))
                 extra_info = {"coloc_light": False, "proj_texture": "all_white", "cam_index": [28, 37],

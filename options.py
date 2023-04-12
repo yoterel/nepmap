@@ -23,6 +23,8 @@ def config_parser(cmd=None):
     parser.add_argument("--rotation_is_qvec", action="store_true", help='rotations are rep. by quaternions')
     parser.add_argument("--datatype", type=str, default='random', choices=["random", "movie"])
     parser.add_argument("--resource_dir", type=str, default='./resource', help='resource data directory')
+    parser.add_argument("--cdc_conda", type=str, help='path to conda env with cdc installed')  # required for text to projection
+    parser.add_argument("--cdc_src", type=str, help='path to cdc source code folder')  # required for text to projection
     parser.add_argument("--device", type=str, default='cuda:0')
     parser.add_argument("--aabb", type=lambda s: [float(item) for item in s.split(",")],
         default="-1.5,-1.5,-1.5,1.5,1.5,1.5",

@@ -403,22 +403,27 @@ def vcams_from_cams(cams, n=30, plane="xz", center_pose=None, radius_factor=1.0)
     return vcamera_poses
 
 def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
-        T_in=0.4, T_out=None,
+        T_in=None, T_out=None,
         CDC_env_path=None,
         CDC_src_path=None):
     """
     run cross-domain composition
     :prompt: the text prompt
-    :src_image: the source image
-    :src_mask: the source mask
+    :src_image: the source image (m x n x 3), best resolution is 512x512 to avoid upsampling.
+        note: current implementation will not upsample but instead crop from center if resolution is larger, and pad with zeros if it is smaller.
+    :src_mask: the source mask, square image with res (m x n x 1), will be cropped to 512x512
     :tmp_input: the input directory for the CDC model
     :tmp_output: the output directory for the CDC model
-    :output_path: the output path for the final image
-    :T_in: value between 0 and 1 for CDC relating to how much to take into account image content inside mask
-    :T_out: value between 0 and 1 for CDC relating to how much to take into account image content outside mask
+    :output_path: the output path for the final image(s)
+    :T_in: a list of values between 0 and 1 for CDC relating to how much to take into account image content inside mask
+        note: this will control the amount of images produced in output_path.
+    :T_out: a list of values between 0 and 1 for CDC relating to how much to take into account image content outside mask
+        note: this will control the amount of images produced in output_path.
     CDC_env_path: path to the CDC conda environment i.e. /path/to/conda_env/root/folder
+        note: if CDC dependencies are installed in the current environment, this can point at it
     CDC_src_path: path to the CDC source code i.e. /path/to/cdc/git/repo
-    note: assumes CDC dependencies and sd-v1-5-inpainting model are installed in a seperate conda environment
+        note: assumes source code is valid and sd-v1-5-inpainting model are installed properly according to CDC instructions.
+    :return: a torch tensor of shape (b x m x n x 3) where b is len(T_in) * len(T_out) of generated outputs 
     """
     images_path = Path(tmp_input, "images")
     images_path.mkdir(parents=True, exist_ok=True)
@@ -451,12 +456,12 @@ def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
             cmd += " --T_in {}".format(" ".join([str(i) for i in T_in]))  # 0: ignore input structure, 1: follow structure of input completely
             if T_out is not None:
                 cmd += " --T_out {}".format(" ".join([str(i) for i in T_out]))
-            test = subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+            subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
             output_files = [x for x in Path(tmp_output).glob("**/*.png") if "grid" not in x.name]
-    if h == w == 400:
+    if h == w == 400:  # hard coded for 400x400 (syntehtic scenes): crop the center as it was just padding
         result = gsoup.load_images(output_files, to_float=True, to_torch=True, device=src_image.device)
         result = gsoup.crop_center(result, 400, 400)
-    else:
+    else:  # hard coded for 480x640 (bunny, teapot): pad to 512x640, then crop the center to reach 480x640
         result = gsoup.load_images(output_files, to_float=True, to_torch=True, device=src_image.device)
         result = gsoup.pad_image_to_res(result, 512, w)
         half_pad = (512 - h) // 2
@@ -584,7 +589,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 test_dataset, train_dataset, args, dst=None,
                 prefix=None, mode="test_set", extra_info=None):
     """
-    monster function for rendering a scene in various modes
+    monster function for rendering a scene in various modes, see modes for details
     :param radiance_field: the radiance field
     :param occupancy_grid: the occupancy grid
     :param scene_aabb: the scene bounding box
@@ -597,6 +602,17 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
     :param dst: destination folder
     :param prefix: prefix for generated files
     :param mode: string describing the mode
+        multi_t2t: text -> projection of multiple views (optimized jointly).
+        t2t: text -> projection of a single view, or multiple views optimized **sequentially**.
+        compensate: perform projector compensation
+        projector_calib: evaluate projector parameters effect on image
+        dual_photo: render a dual photo, currently set up to produce XRAY result from paper
+        train_set, test_set: renders decompositions of frames from train/test set, with the exact lighting as in the dataset
+        test_set_movie: renders all test set as RGB, sequentially as a .gif (kind of useless)
+        train_set_movie: renders all train set as RGB, sequentially as a .gif
+        move_camera: renders the scene using a circular camera path from novel views.
+        move_projector: renders the scene using a circular projector path from any view.
+        play_vid: streams a raw video onto the scene. projector is fixed while camera moves in circular motion.
     :param extra_info: extra information for render
     :return: the psnrs if applicaple
     todo: refactor this function
@@ -625,7 +641,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     cur_coloc = light_field["coloc_light"]
                     light_field["coloc_light"] = None
         psnrs = []
-        if mode == "multi_t2t":
+        if mode == "multi_t2t":  # text -> projection of multiple views (optimized jointly).
             mypath = Path(args.experiment_folder , "multi_t2t")
             mypath.mkdir(parents=True, exist_ok=True)
             for i, viewpoint in enumerate(extra_info["cam_index"]):
@@ -651,7 +667,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                                 scene_aabb,
                                 occupancy_grid=occupancy_grid,
                                 render_step_size=render_step_size,
-                                render_bkgd=torch.zeros(3, device=args.device),
+                                render_bkgd=None,
                                 test_chunk_size=args.test_chunk_size,
                                 ret_vals=test_retvals,
                                 is_relightable=args.relightable,
@@ -663,9 +679,9 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                         pred_normals = result["pred_normals"]
                         # define static inpainting masks
                         mask1 = result["opacity"] > 0
-                        mask2 = result["pred_proj_transm_map"] > 0.3
+                        mask2 = result["pred_proj_transm_map"] > 0.2
                         mask3 = (pred_normals[:, None, :] @ primary_rays.viewdirs.view(-1, 3)[:, :, None])[:, :, 0] < -0.3
-                        mask3 = torch.ones_like(mask2)
+                        mask3 = torch.ones_like(mask2)  # not used eventually
                         gsoup.save_image(image, rgb_path) 
                         gsoup.save_image(mask1.view(*primary_rays.viewdirs.shape[:2], -1), mask1_path)
                         gsoup.save_image(mask2.view(*primary_rays.viewdirs.shape[:2], -1), mask2_path)
@@ -684,12 +700,14 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                         result = gsoup.load_image(diffuse_result, to_float=True, to_torch=True, device=args.device)
                     else:
                         CDC([extra_info["prompt"][i]], image,
-                                    mask.to(torch.float32),
-                                    Path(diffuse_path, "tmp_input"),
-                                    Path(diffuse_path, "tmp_output"),
-                                    Path(diffuse_path, "output"),
-                                    extra_info["t_in"],
-                                    extra_info["t_out"])
+                            mask.to(torch.float32),
+                            Path(diffuse_path, "tmp_input"),
+                            Path(diffuse_path, "tmp_output"),
+                            Path(diffuse_path, "output"),
+                            extra_info["t_in"],
+                            extra_info["t_out"],
+                            extra_info["cdc_conda"],
+                            extra_info["cdc_src"])
                         input("place diffuse_final.png in diffuse_{} and press enter".format(i))
             # load all generated images and reduce brightness
             images = []
@@ -721,7 +739,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                                             scene_aabb, render_step_size,
                                             intermeds, intermediate_results=True)
                 gsoup.save_image(dual_image, projector_texture_path)
-        elif mode == "t2t":
+        elif mode == "t2t":  # text -> projection of a single view, or multiple views optimized **sequentially**.
             mypath = Path(args.experiment_folder , "t2t")
             mypath.mkdir(parents=True, exist_ok=True)
             dual_mask_aggregate = None
@@ -927,7 +945,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     image = primal_result["rgb"]
                     image = image.view(*primary_rays.viewdirs.shape[:2], -1)
                     gsoup.save_image(image, Path(mypath, "final_rgb_{}.png".format(i)))
-        elif mode == "compensate":
+        elif mode == "compensate":  # perform projector compensation
             brightness_values = [-150]
             with torch.no_grad():
                 primary_rays = train_dataset[extra_info["cam_index"]]["rays"]
@@ -952,7 +970,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                                                     intermediate_results=True)
                     gsoup.save_image(cur_target, Path(cur_path, "target.png"))
                     gsoup.save_image(result_texture, final_texture_path)
-        elif mode == "projector_calib":
+        elif mode == "projector_calib":  # evaluate projector parameters effect on image
             with torch.no_grad():
                 num_images = 20
                 cur_gamma = light_field["projectors"][0]["gamma"]
@@ -1087,7 +1105,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 print("psnrs gamma: ", psnrs[:num_images])
                 print("amp values: ", amp_values)
                 print("psnrs amp: ", psnrs[num_images:])
-        elif mode == "dual_photo":
+        elif mode == "dual_photo":  # render a dual photo, currently set up to produce XRAY result from paper
             """
             renders a dual photo as described in paper
             """
@@ -1160,7 +1178,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 )
             reprojected = reprojected["rgb"].view(*primary_rays.viewdirs.shape[:2], -1)
             gsoup.save_image(reprojected, Path(dual_path, "reprojected.png"))
-        elif mode == "train_set" or mode == "test_set":
+        elif mode == "train_set" or mode == "test_set":  # renders decompositions of frames from train or test set, with the exact lighting as in the dataset
             with torch.no_grad():
                 dataset = train_dataset if mode == "train_set" else test_dataset
                 if "projectors" in light_field:
@@ -1211,7 +1229,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     save_results_to_images(result, myprefix, mypath, rays.viewdirs.shape[:2], w2c)
                 if "projectors" in light_field:
                     light_field["projectors"][0]["textures"] = train_dataset.textures
-        elif mode == "test_set_movie":
+        elif mode == "test_set_movie":  # renders all test set as RGB, sequentially as a .gif (kind of useless)
             with torch.no_grad():
                 if "stride" in extra_info:
                     stride=extra_info["stride"]
@@ -1247,7 +1265,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 else:
                     myprefix = prefix
                 save_results_to_gif(results, len(w2c), myprefix, args.experiment_folder, data["rays"].viewdirs.shape[:2], w2c)
-        elif mode == "train_set_movie":
+        elif mode == "train_set_movie":  # renders all train set as RGB, sequentially as a .gif
             with torch.no_grad():
                 if "stride" in extra_info:
                     stride=extra_info["stride"]
@@ -1289,7 +1307,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 else:
                     myprefix = prefix
                 save_results_to_gif(results, len(w2c), myprefix, args.experiment_folder, data["rays"].viewdirs.shape[:2], w2c)
-        elif mode == "move_camera":
+        elif mode == "move_camera":  # renders the scene using a circular camera path from novel views.
             with torch.no_grad():
                 c2w = test_dataset.camtoworlds
                 if "plane" in extra_info:
@@ -1330,7 +1348,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     myprefix = prefix
                 save_results_to_gif(results, len(vc2w), myprefix, args.experiment_folder, rays.viewdirs.shape[:2], w2c)
                 test_dataset.camtoworlds = c2w
-        elif mode == "move_projector":
+        elif mode == "move_projector":  # renders the scene using a circular projector path from any view.
             with torch.no_grad():
                 if "plane" in extra_info:
                     plane = extra_info["plane"]
@@ -1376,7 +1394,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 save_results_to_gif(results, len(vc2w), prefix, args.experiment_folder, rays.viewdirs.shape[:2], w2c[extra_info["cam_index"]:extra_info["cam_index"]+1])
                 light_field["projectors"][0]["t"] = cur_t
                 light_field["projectors"][0]["v"] = cur_v
-        elif mode == "play_vid":
+        elif mode == "play_vid":  # streams a raw video onto the scene. projector is fixed while camera moves in circular motion.
             from gsoup.video import VideoReader
             reader = VideoReader(Path(extra_info["vid_path"]),
                                 int(light_field["projectors"][0]["H"].item()),
