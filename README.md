@@ -17,6 +17,14 @@ Install nerfacc from the ext folder (note: custom changes have been made to occ 
 `cd ext/nerfacc`\
 `pip install .`
 
+## Datasets & Pretrained models
+
+[Datasets]()
+
+[Pretrained models]()
+
+All synthetic scenes were created using the [sandbox.blend](https://github.com/yoterel/nepmap/blob/master/sandbox.blend) file.
+
 ## Train on example data
 
 Train on the provided example data (note: for some scenes a vanilla nerf must be trained first):\
@@ -59,7 +67,7 @@ For real scenes, this code assumes COLMAP is installed and available in the curr
                 ...
 
 Where dataset_folder contains the RGBA images of the scene, and projector/raw_patterns contains the raw patterns that were projected.
-If you deviate from the current scheme of projecting 3 patterns per view where one is white flood-filled, one is black flood-filled, and the last is any random pattern, some adjustments need to be made to the code (data/data_loader.py).
+If you deviate from the current scheme of projecting 3 patterns per view where one is white flood-filled, one is black flood-filled, and the last is any random pattern, some adjustments need to be made to the code ([data_loader.py](https://github.com/yoterel/nepmap/blob/master/data/data_loader.py)).
 
 Note about background removal:\
 Acquired images must have RGBA information (alpha channel seperating background from foreground). If it doesn't, consider segmenting the background using [rembg](https://github.com/danielgatis/rembg) or other tools.
