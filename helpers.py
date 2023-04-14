@@ -528,7 +528,19 @@ def dual_photography(desired_appearance, retvals, projector, camera,
 def optimize_texture(target_images, rays, radiance_field, occupancy_grid, light_field,
                      scene_aabb, render_step_size, dst, intermediate_results=False, mode="sigmoid"):
     """
-    optimize projector texture given a batch of target image
+    optimize projector texture given a batch of target images
+    todo: create randomized batches of rays instead of differentiating through whole image which is slow and wasteful 
+    :param target_image: target image h x w x 3
+    :param rays: rays (with origins and directions same shape as target_image)
+    :param radiance_field: radiance field
+    :param occupancy_grid: occupancy grid
+    :param light_field: light field
+    :param scene_aabb: scene aabb
+    :param render_step_size: render step size
+    :param dst: destination path to save intermediate results to
+    :param intermediate_results: whether to save intermediate results
+    :param mode: sigmoid or clip (sigmoid yields better results)
+    :return: optimized projector texture (proj_h x proj_w x 3)
     """
     projector = light_field["projectors"][0]
     mypath = Path(dst)

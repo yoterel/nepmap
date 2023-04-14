@@ -33,7 +33,7 @@ Stream a movie onto the Castle scene:\
 `python train.py --config configs/castle.txt --render_only --render_modes play_vid`
 
 Perform XRAY on Teapot & Neko scene:\
-`python train.py --config configs/castle.txt --render_only --render_modes play_vid`
+`python train.py --config configs/teapot.txt --render_only --render_modes dual_photo`
 
 Text->Projection on Planck scene:\
 `python train.py --config configs/planck.txt --render_only --render_modes multi_t2t --cdc_conda /path/to/cdc/conda/env --cdc_src /path/to/cdc/src`
