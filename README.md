@@ -34,8 +34,8 @@ Train on the provided example data (note: for some scenes a vanilla nerf must be
 
 ## Inference on example data
 
-Create some animations from novel view points and decompositions of the Zoo scene:\
-`python train.py --config configs/zoo.txt --render_only --render_modes play_vid`
+Decompose the Zoo scene on the training set:\
+`python train.py --config configs/zoo.txt --render_only --render_modes train_set_movie`
 
 Stream a movie onto the Castle scene:\
 `python train.py --config configs/castle.txt --render_only --render_modes play_vid`
@@ -46,7 +46,7 @@ Perform XRAY on Teapot & Neko scene:\
 Text->Projection on Planck scene:\
 `python train.py --config configs/planck.txt --render_only --render_modes multi_t2t --cdc_conda /path/to/cdc/conda/env --cdc_src /path/to/cdc/src`
 
-Note1: for this to work you must have [CDC](https://github.com/cross-domain-compositing/cross-domain-compositing) installed in a seperate folder (where /path/to/cdc/conda/env can be the current one if you installed cdc in the same environment as nepmap).
+Note1: for the text->projection to work you must have [CDC](https://github.com/cross-domain-compositing/cross-domain-compositing) installed in a seperate folder (where /path/to/cdc/conda/env can be the current one if you installed cdc in the same environment as nepmap).
 
 Note2: The current code produces multiple results for different content aware thresholds ("T_in"). The outputs will be produced in the folder diffuse_i/output where i is the current view being processed. You will be prompted to select an output image, name it "diffuse_final.png" and place it in a diffuse_i folder.
 This may be fully automated if T_in is a single value.
@@ -71,9 +71,10 @@ If you deviate from the current scheme of projecting 3 patterns per view where o
 
 Note about background removal:\
 Acquired images must have RGBA information (alpha channel seperating background from foreground). If it doesn't, consider segmenting the background using [rembg](https://github.com/danielgatis/rembg) or other tools.
+Optimization should work without an alpha channel, but this greatly reduces the quality of the results.
 
-## Contributions / Requests
+## Troubleshooting / Requests
 
-Feel free to ask for any additional information or to contribute to the project.
+Feel free to ask for any additional information by openning a github issue.
 
 
