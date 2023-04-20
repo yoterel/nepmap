@@ -475,6 +475,7 @@ def dual_photography(desired_appearance, retvals, projector, camera,
                      render_step_size, test_chunk_size, dst=None, bg_color=None):
     """
     returns the projector image that best obtain desired appearance from camera viewpoint
+    using a 2-pass rendering approach
     :param desired_apperance float tensor channels first, [C, H, W]
     :param retvals: return values from the render function
     :param projector: projector dictionary
@@ -1118,11 +1119,9 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 print("amp values: ", amp_values)
                 print("psnrs amp: ", psnrs[num_images:])
         elif mode == "dual_photo":  # render a dual photo, currently set up to produce XRAY result from paper
-            """
-            renders a dual photo as described in paper
-            """
             # obtain some desired view (beyond an occluder for example)
-            # note: change this to your desired view, currently it is set up to produce paper result
+            # note: change this to your desired view, currently it is set up to produce paper xray result
+            # select particular view from teapot-neko scene
             orig_c2w = train_dataset.camtoworlds[extra_info["cam_index"]].clone().detach()
             view = orig_c2w.clone().detach()
             x_dir = view[:3, 0].clone()
@@ -1147,7 +1146,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     radiance_field,
                     primary_rays,
                     scene_aabb,
-                    near_plane=0.1 if extra_info["xray"] else None,
+                    near_plane=1.0 if extra_info["xray"] else None,
                     occupancy_grid=occupancy_grid,
                     render_step_size=render_step_size,
                     render_bkgd=torch.zeros(3, device=args.device),
@@ -1157,13 +1156,14 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     light_field=light_field,
                     texture_ids=texture_ids
                 )
-            desired = primal_result["rgb"].view(*primary_rays.viewdirs.shape[:2], -1)
+            desired = primal_result["rgb"].view(*primary_rays.viewdirs.shape[:2], -1)  # final desired view
             dual_retvals = ["rgb"]
             projector = light_field["projectors"][0]
             t_cam = train_dataset.camtoworlds[extra_info["cam_index"], :3, -1]
             rot_cam = R.from_matrix(train_dataset.camtoworlds[extra_info["cam_index"], :3, :3].cpu().numpy())
             v_cam = gsoup.to_torch(rot_cam.as_rotvec().astype(np.float32), device=args.device)
             camera = create_camera(train_dataset.K, t_cam, v_cam, train_dataset.WIDTH, train_dataset.HEIGHT, device=args.device)
+            # pass parameters to dual_photography function
             result = dual_photography(desired.permute(2, 0, 1),
                                       dual_retvals, projector, camera,
                                       radiance_field, occupancy_grid,
@@ -1174,6 +1174,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
             dual_path.mkdir(parents=True, exist_ok=True)
             gsoup.save_image(desired, Path(dual_path, "desired.png"))
             gsoup.save_image(dual_photo, Path(dual_path, "dual_photo.png"))
+            # lets also reproject the dual photo back to the original view, just as sanity check
             light_field["projectors"][0]["textures"] = dual_photo.permute(2, 0, 1)
             reprojected = march_and_extract(
                     radiance_field,

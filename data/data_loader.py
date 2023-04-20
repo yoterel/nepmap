@@ -130,38 +130,6 @@ def parse_img2tex_file(tex_path):
         tex2img[tex_name] = image_names[indices]
     return tex2img, img2view, view2img
 
-def approximate_bg(images_path):
-    """
-    approximate background
-    """
-    imgs, paths = gsoup.load_images(images_path, return_paths=True)
-    image_names = [x.name for x in paths]
-    orig_imgs_path = images_path / "orig_images"
-    debug_imgs_path = images_path / "debug_images"
-    debug_imgs_path.mkdir(exist_ok=True, parents=True)
-    orig_imgs_path.mkdir(exist_ok=True, parents=True)
-    all_exist = True
-    for i, image in enumerate(imgs):
-        if not Path(orig_imgs_path, image_names[i]).exists():
-            all_exist = False
-    if all_exist:
-        return
-    from rembg import remove, new_session
-    session = new_session()
-    for i, image in enumerate(imgs):
-        if Path(orig_imgs_path, image_names[i]).exists():
-            continue
-        shutil.copy(paths[i], Path(orig_imgs_path, image_names[i]))
-        logging.info("Removing bg {} / {}".format(i, len(imgs)))
-        output = remove(image, session=session).copy()
-        alpha_channel = output[..., -1]
-        # mask = alpha_channel > 10
-        # mask = mask.astype(np.uint8) * 255
-        mask = alpha_channel
-        new_image = np.concatenate([image, mask[..., None]], axis=-1)
-        gsoup.save_image(new_image, paths[i])
-        # gsoup.save_image(new_image, Path(debug_imgs_path, image_names[i]))
-
 def load_renderings(data_dir: str, optimize_cams: bool, colmap_mode="video", colmap_views="all_black", post_added_views=None, interpolate=True):
     """Load images from disk."""
     json_path = Path(data_dir, 'transforms.json')
@@ -185,7 +153,7 @@ def load_renderings(data_dir: str, optimize_cams: bool, colmap_mode="video", col
     with open(json_path, "r") as fp:
         meta = json.load(fp)
     if not "blender_matrix_world_proj" in meta:  # if this isnt blender dataset then we need to approximate the bg
-        approximate_bg(data_dir)
+        # approximate_bg(data_dir)
         is_blender = False
     else:
         is_blender = True

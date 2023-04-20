@@ -143,7 +143,6 @@ if __name__ == "__main__":
             np.savez(str(path),
                     cam_rt=np.stack(gsoup.to_np(train_dataset.orig_camtoworlds)[None, ...]),
                     proj_rt=Rt[None, ...], proj_k=K_proj[None, ...])
-    if args.projectors:
         for projector in projectors:
             if args.projector_add_noise and not args.render_only:
                 if train_dataset.is_blender:
@@ -152,7 +151,7 @@ if __name__ == "__main__":
                 else:
                     projector["t"] = torch.tensor([0.5, -0.5, 0.5], device=args.device)  # place arbitrary in unit cube corner
                     rot = gsoup.look_at_torch(projector["t"],
-                                            torch.zeros(3, device=args.device),
+                                            torch.tensor([0.0, 0.0, -0.5], device=args.device),
                                             torch.tensor([0.0, 0.0, 1.0], device=args.device))
                     projector["v"] = gsoup.mat2qvec(rot[:3, :3]).detach().clone()
                     # projector["t"] = (projector["t"] + torch.randn_like(projector["t"])*0.05).detach().clone()
@@ -313,7 +312,7 @@ if __name__ == "__main__":
                 extra_info = {"frames_to_render": frames_to_render}
                 train_set_retvals = test_retvals.copy()
                 render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                                render_step_size / 2, train_set_retvals, light_field,
+                                render_step_size / 4, train_set_retvals, light_field,
                                 test_dataset, train_dataset, args, prefix="ro_train_set", mode="train_set", extra_info=extra_info)
             elif mode == "test_set":
                 if args.frames_for_render is not None:
@@ -338,7 +337,7 @@ if __name__ == "__main__":
                 extra_info = {"stride": 10}
                 test_set_movie_retvals = test_retvals.copy()
                 render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                            render_step_size / 2, test_set_movie_retvals, light_field,
+                            render_step_size / 4, test_set_movie_retvals, light_field,
                             test_dataset, train_dataset, args, prefix="ro_test_stream", mode="test_set_movie", extra_info=extra_info)
             elif mode == "move_projector":
                 if args.projectors:
@@ -358,10 +357,10 @@ if __name__ == "__main__":
                                 test_dataset, train_dataset, args, prefix="ro_move_cam", mode="move_camera", extra_info=extra_info)
             elif mode == "train_set_movie":
                 if args.opt_cams:
-                    extra_info = {"stride": 10}
+                    extra_info = {"stride": 1}
                     train_set_movie_retvals = test_retvals.copy()
                     render_sandbox(radiance_field, occupancy_grid, scene_aabb,
-                            render_step_size / 2, train_set_movie_retvals, light_field,
+                            render_step_size / 4, train_set_movie_retvals, light_field,
                             test_dataset, train_dataset, args, prefix="ro_train_stream", mode="train_set_movie", extra_info=extra_info)
             elif mode == "projector_calib":
                 extra_info = {"cam_index": 35}
@@ -465,7 +464,7 @@ if __name__ == "__main__":
                         optimizer.param_groups[opt_group["proj_geo"]]['lr'] = args.lr
                     else:
                         optimizer.param_groups[opt_group["proj_geo"]]['lr'] = args.lr
-                elif phase == 3:  # finetune all
+                elif phase == 3:  # finetune
                     train_dataset.use_random_cams = False
                     train_dataset.only_static_views = False
                     train_dataset.only_black_views = False
@@ -486,7 +485,7 @@ if __name__ == "__main__":
                         param.requires_grad = True
                     if "cams" in opt_group:
                         for param in optimizer.param_groups[opt_group["cams"]]["params"]:
-                            param.requires_grad = True
+                            param.requires_grad = False
                         optimizer.param_groups[opt_group["cams"]]['lr'] = args.lr / 16
                     optimizer.param_groups[opt_group["net"]]['lr'] = args.lr / 32
                     optimizer.param_groups[opt_group["vis"]]['lr'] = args.lr / 32
