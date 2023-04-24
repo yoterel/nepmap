@@ -13,7 +13,7 @@ Create a conda environment :\
 Activate the environment :\
 `conda activate nepmap`
 
-Install nerfacc from the ext folder (note: custom changes have been made to occ grid class so this version must be used):\
+Install nerfacc from the ext folder (note: custom changes have been made to occ grid class so this version of nerfacc must be used):\
 `cd ext/nerfacc`\
 `pip install .`
 
