@@ -305,8 +305,11 @@ if __name__ == "__main__":
             elif mode == "train_set":
                 if args.frames_for_render is not None:
                     frames_to_render = np.array([int(x) for x in args.frames_for_render.split()])
-                    mask = np.array(frames_to_render) >= len(train_dataset)
-                    frames_to_render[mask] = 0
+                    if (frames_to_render < 0).any():
+                        frames_to_render = np.arange(len(train_dataset))[::4]
+                    else:
+                        mask = np.array(frames_to_render) >= len(train_dataset)
+                        frames_to_render[mask] = 0
                 else:
                     frames_to_render = [0]
                 extra_info = {"frames_to_render": frames_to_render}
@@ -317,8 +320,11 @@ if __name__ == "__main__":
             elif mode == "test_set":
                 if args.frames_for_render is not None:
                     frames_to_render = np.array([int(x) for x in args.frames_for_render.split()])
-                    mask = np.array(frames_to_render) >= len(train_dataset)
-                    frames_to_render[mask] = 0
+                    if (frames_to_render < 0).any():
+                        frames_to_render = np.arange(len(test_dataset))[::4]
+                    else:
+                        mask = np.array(frames_to_render) >= len(test_dataset)
+                        frames_to_render[mask] = 0
                 else:
                     frames_to_render = np.array([110,74,179,167,50,92,278,272,251,5,221,71,107,17,257,56,182,44,287,269,29,188,77,212,62,83,227,233,14,32,176,68,170,101,173,206])
                     # projector_on_frames = np.arange(2, len(test_dataset), 3)

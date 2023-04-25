@@ -54,7 +54,7 @@ def config_parser(cmd=None):
     parser.add_argument("--render_n_samples", type=int, default=1024)
     parser.add_argument("--grid_resolution", type=int, default=128)
     parser.add_argument("--divide_res", type=int, default=1)
-    parser.add_argument("--frames_for_render", type=str)
+    parser.add_argument("--frames_for_render", type=str, help="which frames to render, -1 for all")
     parser.add_argument("--post_added_views", type=str)
     parser.add_argument("--sch_milestones", type=str)
     parser.add_argument("--proj_w", type=int, default=800)
