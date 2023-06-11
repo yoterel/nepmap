@@ -1,3 +1,5 @@
+[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](#) | [Supp]([about:blank](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf))
+
 # Neural Projection Mapping Using Reflectance Fields
 
 This is the official implmentation of "Neural Projection Mapping Using Reflectance Fields".
