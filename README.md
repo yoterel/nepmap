@@ -1,4 +1,4 @@
-[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](#) | [Supp](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf) | [Dataset](https://osf.io/2xcn4/download)
+[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](#) | [Supplementary](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf) | [Dataset](https://osf.io/2xcn4/download) | [Pretrained Models](https://osf.io/fqcd7/download)
 
 # Neural Projection Mapping Using Reflectance Fields
 
@@ -21,9 +21,8 @@ Install nerfacc from the ext folder (note: custom changes have been made to occ 
 
 ## Datasets & Pretrained models
 
-[Datasets]()
-
-[Pretrained models]()
+Download and place the dataset under nepmap/datasets
+Download and place the pretrained models under nepmap/logs
 
 All synthetic scenes were created using the [sandbox.blend](https://github.com/yoterel/nepmap/blob/master/sandbox.blend) file.
 
