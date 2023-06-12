@@ -10,6 +10,7 @@ Clone the repository :\
 `git clone https://github.com/yoterel/nepmap.git`
 
 Create a conda environment :\
+`cd nepmap`\
 `conda env create -n nepmap --file environment.yml`
 
 Activate the environment :\
@@ -19,11 +20,13 @@ Install nerfacc from the ext folder (note: custom changes have been made to occ 
 `cd ext/nerfacc-0.3.5`\
 `pip install .`
 
-Optionally download datasets and pretrained models (this will place them at nepmap/datasets, nepmap/logs):\
+Optionally download datasets and pretrained models (this will place them under the root nepmap folder, assuming you are currently navigated there):\
 `wget https://osf.io/2xcn4/download -O datasets.zip`\
+`unzip datasets.zip`\
 `mv nepmap-dataset datasets`
 
 `wget https://osf.io/nzsk8/download -O pretrained.zip`\
+`unzip pretrained.zip`\
 `mv nepmap-pretrained logs`
 
 
