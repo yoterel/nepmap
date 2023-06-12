@@ -19,14 +19,13 @@ Install nerfacc from the ext folder (note: custom changes have been made to occ 
 `cd ext/nerfacc-0.3.5`\
 `pip install .`
 
-Optionally download datasets and pretrained models (place them at nepmap/datasets, nepmap/logs):\
-`mkdir datasets`\
-`cd datasets`\
-`wget https://osf.io/2xcn4/download`
+Optionally download datasets and pretrained models (this will place them at nepmap/datasets, nepmap/logs):\
+`wget https://osf.io/2xcn4/download -O datasets.zip`\
+`mv nepmap-dataset datasets`
 
-`mkdir logs`\
-`cd logs`\
-`wget https://osf.io/nzsk8/download`
+`wget https://osf.io/nzsk8/download -O pretrained.zip`\
+`mv nepmap-pretrained logs`
+
 
 Tested on Ubuntu 18.04.6, with Nvidia RTX A6000.
 For GPUs with less memory, you might need to reduce one of the following hyper parameters for training or inference:
