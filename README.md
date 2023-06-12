@@ -1,3 +1,5 @@
+[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](#) | [Supplementary](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf) | [Dataset](https://osf.io/2xcn4/download) | [Pretrained Models](https://osf.io/nzsk8/download)
+
 # Neural Projection Mapping Using Reflectance Fields
 
 This is the official implmentation of "Neural Projection Mapping Using Reflectance Fields".
@@ -8,20 +10,38 @@ Clone the repository :\
 `git clone https://github.com/yoterel/nepmap.git`
 
 Create a conda environment :\
+`cd nepmap`\
 `conda env create -n nepmap --file environment.yml`
 
 Activate the environment :\
 `conda activate nepmap`
 
 Install nerfacc from the ext folder (note: custom changes have been made to occ grid class so this version of nerfacc must be used):\
-`cd ext/nerfacc`\
+`cd ext/nerfacc-0.3.5`\
 `pip install .`
+
+Optionally download datasets and pretrained models (this will place them under the root nepmap folder, assuming you are currently navigated there):\
+`wget https://osf.io/2xcn4/download -O datasets.zip`\
+`unzip datasets.zip`\
+`mv nepmap-dataset datasets`
+
+`wget https://osf.io/nzsk8/download -O pretrained.zip`\
+`unzip pretrained.zip`\
+`mv nepmap-pretrained logs`
+
+
+Tested on Ubuntu 18.04.6, with Nvidia RTX A6000.
+For GPUs with less memory, you might need to reduce one of the following hyper parameters for training or inference:
+- grid_resolution  # controls occupancy grid resolution for nerfacc
+- render_n_samples  # controls number of initial samples per ray (actual samples are determined by the occupancy)
+- target_sample_batch_size  # controls the target number of rays per batch (batch size is not fixed)
+- test_chunk_size  # chunk size during inference
+- _update() function under grid.py  # there is a hard coded thereshold of 800k which splits occupancy queries into chunks. reduce it to avoid OOM.
 
 ## Datasets & Pretrained models
 
-[Datasets]()
-
-[Pretrained models]()
+Download and place the dataset under nepmap/datasets
+Download and place the pretrained models under nepmap/logs
 
 All synthetic scenes were created using the [sandbox.blend](https://github.com/yoterel/nepmap/blob/master/sandbox.blend) file.
 
@@ -45,6 +65,9 @@ Perform XRAY on Teapot & Neko scene:\
 
 Text->Projection on Planck scene:\
 `python train.py --config configs/planck.txt --render_only --render_modes multi_t2t --cdc_conda /path/to/cdc/conda/env --cdc_src /path/to/cdc/src`
+
+Text->Projection on Bunny scene:\
+`python train.py --config configs/bunny.txt --render_only --render_modes multi_t2t --cdc_conda /path/to/cdc/conda/env --cdc_src /path/to/cdc/src`
 
 Note1: for the text->projection to work you must have [CDC](https://github.com/cross-domain-compositing/cross-domain-compositing) installed in a seperate folder (where /path/to/cdc/conda/env can be the current one if you installed cdc in the same environment as nepmap).
 
