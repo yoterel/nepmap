@@ -16,8 +16,17 @@ Activate the environment :\
 `conda activate nepmap`
 
 Install nerfacc from the ext folder (note: custom changes have been made to occ grid class so this version of nerfacc must be used):\
-`cd ext/nerfacc`\
+`cd ext/nerfacc-0.3.5`\
 `pip install .`
+
+Optionally download datasets and pretrained models (place them at nepmap/datasets, nepmap/logs):\
+`mkdir datasets`\
+`cd datasets`\
+`wget https://osf.io/2xcn4/download`
+
+`mkdir logs`\
+`cd logs`\
+`wget https://osf.io/nzsk8/download`
 
 Tested on Ubuntu 18.04.6, with Nvidia RTX A6000.
 For GPUs with less memory, you might need to reduce one of the following hyper parameters for training or inference:
@@ -30,7 +39,6 @@ For GPUs with less memory, you might need to reduce one of the following hyper p
 ## Datasets & Pretrained models
 
 Download and place the dataset under nepmap/datasets
-
 Download and place the pretrained models under nepmap/logs
 
 All synthetic scenes were created using the [sandbox.blend](https://github.com/yoterel/nepmap/blob/master/sandbox.blend) file.
