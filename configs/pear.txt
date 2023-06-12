@@ -1,10 +1,10 @@
-expname = pear_01
+expname = pear
 datadir = datasets
 nepmap = True
 scene = pear
 test_scene = pear_random
 colmap_mode = "random_views"
-nerf_checkpoint = ./logs/pear_nerf_01/latest.tar
+nerf_checkpoint = ./logs/pear_nerf/latest.tar
 proj_amp = 15.0
 coloc_amp = 7.0
 geo_freq = 7

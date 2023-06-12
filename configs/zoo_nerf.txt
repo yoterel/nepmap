@@ -1,4 +1,4 @@
-expname = zoo_nerf_01
+expname = zoo_nerf
 datadir = datasets
 #nepmap = True
 scene = zoo_coloc
@@ -17,7 +17,7 @@ normal_loss_coeff = 0.0
 normal_loss2_coeff = 0.0
 projector_add_noise = False
 cameras_add_noise = False
-device = cuda:2
+device = cuda:0
 #render_only = True
 opt_cams = False
 render_n_samples = 2048

@@ -1,4 +1,4 @@
-expname = pear_nerf_01
+expname = pear_nerf
 datadir = datasets
 #nepmap = True
 scene = pear_coloc
