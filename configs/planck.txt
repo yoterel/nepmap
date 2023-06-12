@@ -50,3 +50,5 @@ rotation_is_qvec = True
 grid_resolution = 256
 net_width = 256
 divide_res = 2
+t2p_prompts = Side profile of The Batman, Side profile of The Joker
+t2p_views = 28, 286

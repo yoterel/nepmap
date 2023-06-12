@@ -264,13 +264,9 @@ if __name__ == "__main__":
             param.requires_grad = False
         for mode in modes:
             if mode == "multi_t2t":  # optimize multiple view points at the same time
-                # texture = torch.ones((3, 800, 800), dtype=torch.float32, device=args.device)
-                # texture[1, :, :] = 0
-                # texture[2, :, :] = 0
-                extra_info = {"coloc_light": False, "proj_texture": "all_white",  # 
-                              "cam_index": [28, 286],
-                                "prompt": ["Side profile of The Batman",
-                                           "Side profile of The Joker"],
+                extra_info = {"coloc_light": False, "proj_texture": "all_white", 
+                              "cam_index": args.t2p_views,
+                                "prompt": args.t2p_prompts,
                                 "t_in": [0.0, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
                                 "t_out": None,
                                 "brightness": -50,
@@ -281,9 +277,7 @@ if __name__ == "__main__":
                 render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                             render_step_size / 4, proj_retvals, light_field,
                             test_dataset, train_dataset, args, prefix="ro_mt2t", mode="multi_t2t", extra_info=extra_info)
-            if mode == "t2t":  # optimize single view point, or multiple view points consecutiely
-                # color = torch.tensor([79, 40, 15], dtype=torch.float32, device=args.device) / 255
-                # color = color[:, None, None].repeat(1, int(light_field["projectors"][0]["H"]), int(light_field["projectors"][0]["W"]))
+            if mode == "t2t":  # optimize single view point, or multiple view points consecutively
                 extra_info = {"coloc_light": False, "proj_texture": "all_white", "cam_index": [28, 37],
                                 "prompt": ["Side profile of Abraham Lincoln",
                                            "Stone sculpture of Abraham Lincoln"],
@@ -544,9 +538,7 @@ if __name__ == "__main__":
                 print("step: {} No alive rays".format(step))
                 random_indices = torch.randint(size=(alive_ray_mask.shape[0]//2,), high=alive_ray_mask.shape[0])
                 alive_ray_mask[random_indices] = True
-            # black_rays_mask = texture_ids[:, 0][alive_ray_mask] == all_black_index
             opt_weights = torch.ones_like(result["rgb"][alive_ray_mask][:, 0:1])
-            # opt_weights[~black_rays_mask] /= 5
             ############################################## img loss ####################################################
             img_loss = F.smooth_l1_loss(result["rgb"][alive_ray_mask], pixels[alive_ray_mask], reduction='none')
             img_loss = (img_loss*opt_weights).mean()
@@ -560,7 +552,7 @@ if __name__ == "__main__":
             ############################################## fog loss ####################################################
             fog_loss = 0.0
             if "cam_transm" in result.keys():
-                b = 8  # increase for steeper parbola
+                b = 8  # increase for steeper parabola
                 fog_loss = args.fog_loss_coeff * torch.mean(-b*((result["cam_transm"]-0.5)**2) + b/4)
             ############################################## cam loss ####################################################
             camera_loss = 0.0

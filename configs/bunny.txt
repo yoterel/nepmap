@@ -49,3 +49,5 @@ inverse_square = True
 rotation_is_qvec = True
 grid_resolution = 256
 divide_res = 2
+t2p_prompts = A realistic bunny with a leopard pattern on its fur
+t2p_views = 254

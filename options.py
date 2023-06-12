@@ -53,6 +53,8 @@ def config_parser(cmd=None):
     parser.add_argument("--colmap_mode", default="video", type=str)
     parser.add_argument("--render_n_samples", type=int, default=1024)
     parser.add_argument("--grid_resolution", type=int, default=128)
+    parser.add_argument("--t2p_prompts", type=str, help="comma delimited string of prompts for text 2 projection app")
+    parser.add_argument("--t2p_views", type=str, help="comma delimited string of prompts for text 2 projection app")
     parser.add_argument("--divide_res", type=int, default=1)
     parser.add_argument("--frames_for_render", type=str, help="which frames to render, -1 for all")
     parser.add_argument("--post_added_views", type=str)
@@ -99,4 +101,10 @@ def config_parser(cmd=None):
     if args.config is not None:
         with open(f_config, 'w') as file:
             file.write(open(args.config, 'r').read())
+    if args.t2p_prompts is not None:
+        args.t2p_prompts = args.t2p_prompts.split(",")
+    if args.t2p_views is not None:
+        args.t2p_views = [int(x) for x in args.t2p_views.split(",")]
+    if len(args.t2p_views) != len(args.t2p_prompts):
+        raise ValueError("t2p views and prompts must have the same length")
     return args
