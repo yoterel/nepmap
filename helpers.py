@@ -540,7 +540,7 @@ def optimize_texture(target_images, rays, radiance_field, occupancy_grid, light_
     :param render_step_size: render step size
     :param dst: destination path to save intermediate results to
     :param intermediate_results: whether to save intermediate results
-    :param mode: sigmoid or clip (sigmoid yields better results)
+    :param mode: sigmoid or clip (sigmoid yields slightly better results, clip is faster)
     :return: optimized projector texture (proj_h x proj_w x 3)
     """
     projector = light_field["projectors"][0]
@@ -562,6 +562,7 @@ def optimize_texture(target_images, rays, radiance_field, occupancy_grid, light_
             light_field["projectors"][0]["textures"] = torch.sigmoid(texture_map)
         else:
             light_field["projectors"][0]["textures"] = torch.clamp(texture_map, min=0.0, max=1.0)
+        # todo: create randomized batches of rays instead of differentiating through whole image which is slow and wasteful
         primal_result = march_and_extract(
                 radiance_field,
                 rays,
@@ -578,7 +579,6 @@ def optimize_texture(target_images, rays, radiance_field, occupancy_grid, light_
             )
         image = primal_result["rgb"].view(*rays.viewdirs.shape[:2], -1)
         loss = F.smooth_l1_loss(image, target_images)
-        # loss = torch.nn.functional.mse_loss(image, target_image)
         optmizer.zero_grad()
         loss.backward()
         optmizer.step()
