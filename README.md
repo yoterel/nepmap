@@ -41,6 +41,7 @@ For GPUs with less memory, you might need to reduce one of the following hyper p
 ## Datasets & Pretrained models
 
 Download and place the dataset under nepmap/datasets
+
 Download and place the pretrained models under nepmap/logs
 
 All synthetic scenes were created using the [sandbox.blend](https://github.com/yoterel/nepmap/blob/master/sandbox.blend) file.
