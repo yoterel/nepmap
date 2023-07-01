@@ -1,4 +1,4 @@
-[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](#) | [Supplementary](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf) | [Dataset](https://osf.io/2xcn4/download) | [Pretrained Models](https://osf.io/nzsk8/download)
+[Project Page](https://yoterel.github.io/nepmap-project-page/) | [Paper](https://arxiv.org/pdf/2306.06595.pdf) | [Supplementary](https://yoterel.github.io/nepmap-project-page/static/pdfs/nepmap-supp.pdf) | [Dataset](https://osf.io/2xcn4/download) | [Pretrained Models](https://osf.io/nzsk8/download)
 
 # Neural Projection Mapping Using Reflectance Fields
 
