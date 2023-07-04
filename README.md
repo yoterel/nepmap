@@ -49,7 +49,6 @@ All synthetic scenes were created using the [sandbox.blend](https://github.com/y
 ## Train on example data
 
 Train on the provided example data (note: for some scenes a vanilla nerf must be trained first):\
-`cd ../..`\
 `python train.py --config configs/castle_nerf.txt`\
 `python train.py --config configs/castle.txt`
 
