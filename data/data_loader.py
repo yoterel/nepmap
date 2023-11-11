@@ -158,7 +158,7 @@ def load_renderings(data_dir: str, optimize_cams: bool, colmap_mode="video", col
     else:
         is_blender = True
     textures_path = Path(data_dir, "projector")
-    textures, texture_paths = gsoup.load_images(textures_path, to_float=True, channels_last=False, return_paths=True)
+    textures, texture_paths = gsoup.load_images(textures_path, float=True, channels_last=False, return_paths=True)
     texture_names = np.array([x.stem for x in texture_paths])
     images = []
     camtoworlds = []

@@ -13,4 +13,4 @@ dependencies:
   - scipy
   - matplotlib
   - pip:
-    - gsoup==0.0.8
+    - gsoup

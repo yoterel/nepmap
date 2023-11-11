@@ -459,10 +459,10 @@ def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
             subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
             output_files = [x for x in Path(tmp_output).glob("**/*.png") if "grid" not in x.name]
     if h == w == 400:  # hard coded for 400x400 (syntehtic scenes): crop the center as it was just padding
-        result = gsoup.load_images(output_files, to_float=True, to_torch=True, device=src_image.device)
+        result = gsoup.load_images(output_files, float=True, to_torch=True, device=src_image.device)
         result = gsoup.crop_center(result, 400, 400)
     else:  # hard coded for 480x640 (bunny, teapot): pad to 512x640, then crop the center to reach 480x640
-        result = gsoup.load_images(output_files, to_float=True, to_torch=True, device=src_image.device)
+        result = gsoup.load_images(output_files, float=True, to_torch=True, device=src_image.device)
         result = gsoup.pad_image_to_res(result, 512, w)
         half_pad = (512 - h) // 2
         result = result[:, half_pad:h+half_pad, :, :]
@@ -669,10 +669,10 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     mask3_path = Path(mask_path, "mask3.png")
                     normals_path = Path(mypath, "normals_{}.png".format(i))
                     if rgb_path.exists() and mask1_path.exists() and mask2_path.exists() and mask3_path.exists():
-                        image = gsoup.load_image(rgb_path, to_float=True, to_torch=True, device=args.device)
-                        mask1 = gsoup.load_image(mask1_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
-                        mask2 = gsoup.load_image(mask2_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
-                        mask3 = gsoup.load_image(mask3_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        image = gsoup.load_image(rgb_path, float=True, to_torch=True, device=args.device)
+                        mask1 = gsoup.load_image(mask1_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        mask2 = gsoup.load_image(mask2_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        mask3 = gsoup.load_image(mask3_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
                     else:
                         result = march_and_extract(
                                 radiance_field,
@@ -702,7 +702,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                         gsoup.save_image((pred_normals.view(*primary_rays.viewdirs.shape[:2], -1)+1) / 2, normals_path)
                     mask_path = Path(mypath, "mask_{}.png".format(i))
                     if mask_path.exists():
-                        mask = gsoup.load_image(mask_path, to_float=True, to_torch=True, device=args.device).to(torch.bool)[..., None]
+                        mask = gsoup.load_image(mask_path, float=True, to_torch=True, device=args.device).to(torch.bool)[..., None]
                     else:
                         mask = (mask1 & mask2 & mask3).view(*primary_rays.viewdirs.shape[:2], -1)
                         gsoup.save_image(mask, mask_path)
@@ -710,7 +710,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     diffuse_path.mkdir(parents=True, exist_ok=True)
                     diffuse_result = Path(diffuse_path, "diffuse_final.png")
                     if diffuse_result.exists():
-                        result = gsoup.load_image(diffuse_result, to_float=True, to_torch=True, device=args.device)
+                        result = gsoup.load_image(diffuse_result, float=True, to_torch=True, device=args.device)
                     else:
                         CDC([extra_info["prompt"][i]], image,
                             mask.to(torch.float32),
@@ -726,7 +726,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
             images = []
             for i in range(len(extra_info["cam_index"])):
                 image_path = Path(mypath, "diffuse_{}".format(i), "diffuse_final.png")
-                image = gsoup.load_image(image_path, to_float=True, to_torch=True, device=args.device)
+                image = gsoup.load_image(image_path, float=True, to_torch=True, device=args.device)
                 if image.shape != (400, 400, 3):
                     image = gsoup.crop_center(image[None, ...], 400, 400)[0]
                 new_brightness = gsoup.change_brightness(image, extra_info["brightness"])
@@ -745,7 +745,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
             intermeds = Path(mypath, "intermediate")
             intermeds.mkdir(parents=True, exist_ok=True)
             if projector_texture_path.exists():
-                dual_image = gsoup.load_image(projector_texture_path, to_float=True, to_torch=True, device=args.device)
+                dual_image = gsoup.load_image(projector_texture_path, float=True, to_torch=True, device=args.device)
             else:
                 dual_image = optimize_texture(reduced_brightness, all_rays, radiance_field,
                                             occupancy_grid, light_field,
@@ -768,10 +768,10 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     # mask4_path = Path(mypath, "mask4_{}.png".format(i))
                     normals_path = Path(mypath, "normals_{}.png".format(i))
                     if rgb_path.exists() and mask1_path.exists() and mask2_path.exists():
-                        image = gsoup.load_image(rgb_path, to_float=True, to_torch=True, device=args.device)
-                        mask1 = gsoup.load_image(mask1_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
-                        mask2 = gsoup.load_image(mask2_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
-                        # n_dot_v = gsoup.load_image(mask4_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        image = gsoup.load_image(rgb_path, float=True, to_torch=True, device=args.device)
+                        mask1 = gsoup.load_image(mask1_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        mask2 = gsoup.load_image(mask2_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        # n_dot_v = gsoup.load_image(mask4_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
                     else:
                         primal_result = march_and_extract(
                                 radiance_field,
@@ -799,7 +799,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                         # gsoup.save_image((torch.abs(n_dot_v) >= 0.3).view(*primary_rays.viewdirs.shape[:2], -1), mask4_path)
                         gsoup.save_image((pred_normals.view(*primary_rays.viewdirs.shape[:2], -1)+1) / 2, normals_path)
                     if mask3_path.exists():
-                        mask3 = gsoup.load_image(mask3_path, to_float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
+                        mask3 = gsoup.load_image(mask3_path, float=True, to_torch=True, device=args.device).to(torch.bool).view(-1, 1)
                     else:
                         if dual_mask_aggregate is not None:
                             light_field["projectors"][0]["textures"] = dual_mask_aggregate.repeat(1,1,3).permute(2, 0, 1).to(torch.float32)
@@ -833,13 +833,13 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                             gsoup.save_image(mask3.view(*primary_rays.viewdirs.shape[:2], -1), mask3_path)
                     mask_path = Path(mypath, "mask_{}.png".format(i))
                     if mask_path.exists():
-                        mask = gsoup.load_image(mask_path, to_float=True, to_torch=True, device=args.device).to(torch.bool)[..., None]
+                        mask = gsoup.load_image(mask_path, float=True, to_torch=True, device=args.device).to(torch.bool)[..., None]
                     else:
                         mask = (mask1 & mask2 & mask3).view(*primary_rays.viewdirs.shape[:2], -1)  # 
                         gsoup.save_image(mask, mask_path)
                     distortion_path = Path(mypath, "mask_distortion_{}.png".format(i))
                     if distortion_path.exists():
-                        distortion_mask = gsoup.load_image(distortion_path, to_float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
+                        distortion_mask = gsoup.load_image(distortion_path, float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
                     else:
                         erode = scipy.ndimage.binary_erosion(gsoup.to_numpy(mask)[:, :, 0], iterations=5)
                         distortion_mask = torch.tensor(erode[..., None], device=args.device, dtype=torch.bool)
@@ -861,7 +861,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                                 extra_info["t_in"],
                                 extra_info["t_out"])
                     input("place diffuse_final.png in diffuse_{} and press enter".format(i))
-                image = gsoup.load_image(diffuse_result, to_float=True, to_torch=True, device=args.device)
+                image = gsoup.load_image(diffuse_result, float=True, to_torch=True, device=args.device)
                 if image.shape != (400, 400, 3):
                     image = gsoup.crop_center(image[None, ...], 400, 400)[0]
                 if image.shape[-1] == 4:
@@ -873,7 +873,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 intermeds = Path(mypath, "intermediate_{}".format(i))
                 intermeds.mkdir(parents=True, exist_ok=True)
                 if projector_texture_path.exists():
-                    dual_image = gsoup.load_image(projector_texture_path, to_float=True, to_torch=True, device=args.device)
+                    dual_image = gsoup.load_image(projector_texture_path, float=True, to_torch=True, device=args.device)
                 else:
                     with torch.no_grad():
                         opt_rays = Rays(origins=primary_rays.origins.detach(), viewdirs=primary_rays.viewdirs.detach())
@@ -894,7 +894,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 dual_folder = Path(mypath, "dual_photo_{}".format(i))
                 dual_mask_path = Path(dual_folder, "dual_mask.png")
                 if dual_mask_path.exists():
-                    hard_dual_mask = gsoup.load_image(dual_mask_path, to_float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
+                    hard_dual_mask = gsoup.load_image(dual_mask_path, float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
                 else:
                     result = dual_photography(mask.repeat(1,1,3).to(torch.float32).permute(2, 0, 1),
                                             dual_retvals, projector, camera,
@@ -906,7 +906,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                     gsoup.save_image(hard_dual_mask, dual_mask_path)
                 dual_dist_mask_path = Path(dual_folder, "dual_distortion_mask.png")
                 if dual_dist_mask_path.exists():
-                    hard_dual_distortion_mask = gsoup.load_image(dual_dist_mask_path, to_float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
+                    hard_dual_distortion_mask = gsoup.load_image(dual_dist_mask_path, float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
                 else:
                     # distortion_mask = (torch.abs(n_dot_v) >= 0.3).view(*primary_rays.viewdirs.shape[:2], -1)
                     result = dual_photography(distortion_mask.repeat(1,1,3).to(torch.float32).permute(2, 0, 1),
@@ -924,8 +924,8 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 texture_fixed_path = Path(mypath, "projector_texture_fixed_{}.png".format(i))
                 texture_fixed_mask_path = Path(mypath, "projector_texture_mask_fixed_{}.png".format(i))
                 if texture_fixed_path.exists():
-                    texture_aggregate = gsoup.load_image(texture_fixed_path, to_float=True, to_torch=True, device=args.device)
-                    dual_mask_aggregate = gsoup.load_image(texture_fixed_mask_path, to_float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
+                    texture_aggregate = gsoup.load_image(texture_fixed_path, float=True, to_torch=True, device=args.device)
+                    dual_mask_aggregate = gsoup.load_image(texture_fixed_mask_path, float=True, to_torch=True, device=args.device)[..., None].to(torch.bool)
                 else:
                     if i == 0:
                         dual_mask_aggregate = dual_mask
@@ -964,7 +964,7 @@ def render_sandbox(radiance_field, occupancy_grid, scene_aabb,
                 primary_rays = train_dataset[extra_info["cam_index"]]["rays"]
             opt_rays = Rays(origins=primary_rays.origins.detach(), viewdirs=primary_rays.viewdirs.detach())
             for target_path in extra_info["image_paths"]:
-                target_image = gsoup.load_image(target_path, to_float=True, to_torch=True,
+                target_image = gsoup.load_image(target_path, float=True, to_torch=True,
                                                 resize_wh=(640, 480), device=args.device)
                 if target_image.shape[-1] == 4:
                     target_image = target_image[..., :3]

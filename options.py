@@ -105,6 +105,7 @@ def config_parser(cmd=None):
         args.t2p_prompts = args.t2p_prompts.split(",")
     if args.t2p_views is not None:
         args.t2p_views = [int(x) for x in args.t2p_views.split(",")]
-    if len(args.t2p_views) != len(args.t2p_prompts):
-        raise ValueError("t2p views and prompts must have the same length")
+    if args.t2p_prompts is not None and args.t2p_views is not None:
+        if len(args.t2p_views) != len(args.t2p_prompts):
+            raise ValueError("t2p views and prompts must have the same length")
     return args
