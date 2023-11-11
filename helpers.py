@@ -436,11 +436,11 @@ def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
     h, w = src_image.shape[:2]
     if not image_path.exists():
         src_image = gsoup.crop_center(src_image[None, ...], min(512, h), min(512, w))
-        src_image = gsoup.pad_image_to_res(src_image, 512, 512)
+        src_image = gsoup.pad_to_res(src_image, 512, 512)
         gsoup.save_image(src_image[0], image_path)
     if not mask_path.exists():
         src_mask = gsoup.crop_center(src_mask[None, ...], min(512, h), min(512, w))
-        src_mask = gsoup.pad_image_to_res(src_mask, 512, 512)
+        src_mask = gsoup.pad_to_res(src_mask, 512, 512)
         gsoup.save_image(src_mask[0], mask_path)
     output_files = [x for x in Path(tmp_output).glob("**/*.png") if "grid" not in x.name]
     if len(output_files) == 0:
