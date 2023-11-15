@@ -449,15 +449,17 @@ def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
             prompt_path = Path(tmp_output, "{:02d}".format(j))
             prompt_path.mkdir(parents=True, exist_ok=True)
             cmd = "cd {0}; export PYTHONPATH=$PYTHONPATH:{0}:{0}/ResizeRight; conda run --prefix {1} python {0}/scripts_cdc/img2img_inpaint.py".format(CDC_src_path, CDC_env_path)
-            cmd += " --config configs/stable-diffusion/v1-inpainting-inference.yaml --ckpt models/ldm/stable-diffusion-v1/sd-v1-5-inpainting.ckpt --n_samples 1 --ddim_steps 50 --strength 1 --T_out 1 --down_N_in 1 --down_N_out 1 --blend_pix 0 --seed 42 --repaint_start 0"
+            cmd += " --config configs/stable-diffusion/v1-inpainting-inference.yaml --ckpt models/ldm/stable-diffusion-v1/sd-v1-5-inpainting.ckpt --n_samples 1 --ddim_steps 50 --strength_in 1.0 --T_out 1 --down_N_in 1 --down_N_out 1 --blend_pix 0 --seed 42 --repaint_start 0"
             cmd += " --prompt '{}'".format(p)
             cmd += " --init_img '{}' --mask '{}'".format(str(image_path.absolute()), str(mask_path.absolute()))
             cmd += " --outdir '{}'".format(str(prompt_path.absolute()))
             cmd += " --T_in {}".format(" ".join([str(i) for i in T_in]))  # 0: ignore input structure, 1: follow structure of input completely
             if T_out is not None:
                 cmd += " --T_out {}".format(" ".join([str(i) for i in T_out]))
-            subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-            output_files = [x for x in Path(tmp_output).glob("**/*.png") if "grid" not in x.name]
+            stdout, stderr = subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+            print("Standard Output:", stdout.decode('utf-8'))
+            print("Standard Error:", stderr.decode('utf-8'))
+            output_files = [x for x in Path(tmp_output).glob("**/*.jpg") if "grid" not in x.name]
     if h == w == 400:  # hard coded for 400x400 (syntehtic scenes): crop the center as it was just padding
         result = gsoup.load_images(output_files, float=True, to_torch=True, device=src_image.device)
         result = gsoup.crop_center(result, 400, 400)
