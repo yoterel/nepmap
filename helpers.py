@@ -459,7 +459,7 @@ def CDC(prompt, src_image, src_mask, tmp_input, tmp_output, output_path,
             stdout, stderr = subprocess.Popen(f"{cmd}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
             print("Standard Output:", stdout.decode('utf-8'))
             print("Standard Error:", stderr.decode('utf-8'))
-            output_files = [x for x in Path(tmp_output).glob("**/*.jpg") if "grid" not in x.name]
+            output_files = [x for x in Path(tmp_output).glob("**/*.[jpJP][npNP][egEG]") if "grid" not in x.name]
     if h == w == 400:  # hard coded for 400x400 (syntehtic scenes): crop the center as it was just padding
         result = gsoup.load_images(output_files, float=True, to_torch=True, device=src_image.device)
         result = gsoup.crop_center(result, 400, 400)
