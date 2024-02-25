@@ -4,6 +4,8 @@
 
 This is the official implmentation of "Neural Projection Mapping Using Reflectance Fields".
 
+Much of the code is based on [nerfacc](https://github.com/nerfstudio-project/nerfacc), we thank the authors of the repo for their contribution !
+
 ## Installation
 
 Clone the repository :\
