@@ -1,7 +1,3 @@
-"""
-Copyright (c) 2022 Ruilong Li, UC Berkeley.
-"""
-
 import numpy as np
 from typing import Callable, Optional
 import gsoup
